@@ -312,7 +312,7 @@ If you prefer to edit settings files directly, add all three hooks to your chose
 ## Additional Configuration
 
 - [Custom instructions](docs/custom-instructions.md) - Customize TDD validation rules
-- [Lint integration](docs/linting.md) - Automated refactoring support
+- [Lint integration](docs/linting.md) - Automated refactoring support (ESLint, Statix)
 - [Strengthening enforcement](docs/enforcement.md) - Prevent agents from bypassing validation
 - [Ignore patterns](docs/ignore-patterns.md) - Control which files are validated
 - [Validation Model](docs/validation-model.md) - Choose faster or more capable model
