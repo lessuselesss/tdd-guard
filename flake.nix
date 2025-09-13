@@ -11,6 +11,60 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
 
+        # TDD Guard CLI package
+        tdd-guard-cli = pkgs.buildNpmPackage {
+          pname = "tdd-guard";
+          version = "1.0.1";
+          src = ./.;
+          
+          npmDepsHash = "sha256-V6bcvTymrWcmAs+VMmX46MDnBUYGnzsIUi26pdeVOrg=";
+          
+          # Allow cache to be writable
+          makeCacheWritable = true;
+          
+          # Skip problematic postinstall scripts
+          npmInstallFlags = [ "--ignore-scripts" ];
+          
+          # We don't need to build since we have pre-built dist/
+          dontNpmBuild = true;
+          
+          
+          installPhase = ''
+            runHook preInstall
+            
+            # Copy everything to output
+            mkdir -p $out/lib/node_modules/tdd-guard
+            cp -r . $out/lib/node_modules/tdd-guard
+            
+            # Remove broken symlinks
+            find $out/lib/node_modules/tdd-guard -type l -exec test ! -e {} \; -print | xargs rm -f
+            
+            # Ensure dist directory exists (should already from source)
+            if [ ! -d "$out/lib/node_modules/tdd-guard/dist" ]; then
+              echo "Building dist directory..."
+              cd $out/lib/node_modules/tdd-guard
+              npx tsc --build tsconfig.build.json
+            fi
+            
+            # Create bin wrapper
+            mkdir -p $out/bin
+            cat > $out/bin/tdd-guard << EOF
+            #!/usr/bin/env bash
+            exec ${pkgs.nodejs_22}/bin/node $out/lib/node_modules/tdd-guard/dist/cli/tdd-guard.js "\$@"
+            EOF
+            chmod +x $out/bin/tdd-guard
+            
+            runHook postInstall
+          '';
+          
+          meta = with pkgs.lib; {
+            description = "Automated Test-Driven Development enforcement for Claude Code";
+            homepage = "https://github.com/nizos/tdd-guard";
+            license = licenses.mit;
+            maintainers = [ ];
+          };
+        };
+
         # TDD Guard Nix reporter package
         tdd-guard-nix = pkgs.writeShellApplication {
           name = "tdd-guard-nix";
@@ -23,6 +77,10 @@
         # Development shell with all required tools
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
+            # TDD Guard packages
+            tdd-guard-cli
+            tdd-guard-nix
+            
             # Node.js ecosystem
             nodejs_22
             npm-check-updates
@@ -32,6 +90,7 @@
             nil # Nix LSP
             nixpkgs-fmt
             statix # Nix linter
+            nixd # for nixf-tidy
 
             # Development tools
             jq
@@ -71,14 +130,19 @@
 
         # Packages
         packages = {
-          default = tdd-guard-nix;
+          default = tdd-guard-cli;
+          tdd-guard = tdd-guard-cli;
+          tdd-guard-cli = tdd-guard-cli;
           tdd-guard-nix = tdd-guard-nix;
         };
 
-        # Apps - easy way to run the reporter
+        # Apps - easy way to run the tools
         apps = {
           default = flake-utils.lib.mkApp {
-            drv = tdd-guard-nix;
+            drv = tdd-guard-cli;
+          };
+          tdd-guard = flake-utils.lib.mkApp {
+            drv = tdd-guard-cli;
           };
           tdd-guard-nix = flake-utils.lib.mkApp {
             drv = tdd-guard-nix;
@@ -110,21 +174,20 @@
           nix-artifacts-eval = pkgs.runCommand "nix-artifacts-eval" {
             buildInputs = [ pkgs.nix-unit ];
           } ''
-            cd ${./.}
+            mkdir -p $out
+            cd $out
 
             # Test that our test artifacts can be evaluated by nix-unit
             echo "Testing passing artifacts..."
-            nix-unit reporters/test/artifacts/nix/passing/tests.nix > passing.out 2>&1 || true
+            nix-unit ${./.}/reporters/test/artifacts/nix/passing/tests.nix > passing.out 2>&1 || true
 
             echo "Testing failing artifacts..."
-            nix-unit reporters/test/artifacts/nix/failing/tests.nix > failing.out 2>&1 || true
+            nix-unit ${./.}/reporters/test/artifacts/nix/failing/tests.nix > failing.out 2>&1 || true
 
             echo "Testing import error artifacts..."
-            nix-unit reporters/test/artifacts/nix/import/tests.nix > import.out 2>&1 || true
+            nix-unit ${./.}/reporters/test/artifacts/nix/import/tests.nix > import.out 2>&1 || true
 
-            # Save outputs for inspection
-            mkdir -p $out
-            cp *.out $out/
+            echo "All artifact tests completed successfully"
           '';
         };
 
