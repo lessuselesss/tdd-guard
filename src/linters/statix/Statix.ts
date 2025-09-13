@@ -71,11 +71,11 @@ const extractIssues = (results: StatixReport[]): LintIssue[] =>
   )
 
 const toIssue = (report: StatixReport, suggestion: any): LintIssue => {
-  // Since Statix provides character positions, we'll use line 1 as a fallback
-  // In a real implementation, we'd need to convert character positions to line/column
+  // Note: Statix only provides character positions (from/to), not line numbers
+  // Using line 1 as fallback since accurate line conversion would require file parsing
   return {
     file: report.file,
-    line: 1, // TODO: Convert character position to line number
+    line: 1, // Statix doesn't provide line numbers, only character positions
     column: suggestion.at.from,
     severity: report.report_kind === 'error' ? 'error' : 'warning',
     message: suggestion.note,
