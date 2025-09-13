@@ -36,6 +36,8 @@ The refactoring support helps by:
 
 3. **Configure the PostToolUse hook**
 
+   You can configure this hook either through the interactive `/hooks` command or by manually editing your settings file. See [Settings File Locations](configuration.md#settings-file-locations) to choose the appropriate location. Use the same location as your PreToolUse hook.
+
    ### Interactive Setup (Recommended)
    1. Type `/hooks` in Claude Code
    2. Select `PostToolUse - After tool execution`
@@ -43,11 +45,11 @@ The refactoring support helps by:
    4. Enter: `Write|Edit|MultiEdit`
    5. Select `+ Add new hook...`
    6. Enter command: `tdd-guard`
-   7. Choose where to save (same location as your PreToolUse hook)
+   7. Choose where to save
 
    ### Manual Configuration
 
-   Add to your `.claude/settings.json`:
+   Add to your chosen settings file:
 
    ```json
    {

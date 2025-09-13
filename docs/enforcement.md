@@ -38,11 +38,7 @@ If your settings allow shell commands without approval, agents can modify files 
 
 ## Where to Apply
 
-Add these settings to:
-
-- **Project settings** (`.claude/settings.json`) - Team-wide enforcement
-- **Local settings** (`.claude/settings.local.json`) - Personal preferences
-- **User settings** (`~/.claude/settings.json`) - Global protection
+Add these settings to your chosen settings file. See [Settings File Locations](configuration.md#settings-file-locations) to choose the appropriate location.
 
 ## Need Help?
 

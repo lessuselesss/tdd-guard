@@ -4,7 +4,7 @@ export { FileStorage } from './storage/FileStorage'
 export { MemoryStorage } from './storage/MemoryStorage'
 
 // Config exports
-export { Config } from './config/Config'
+export { Config, DEFAULT_DATA_DIR } from './config/Config'
 export type { ConfigOptions } from './contracts/types/ConfigOptions'
 
 // Contract exports - Types

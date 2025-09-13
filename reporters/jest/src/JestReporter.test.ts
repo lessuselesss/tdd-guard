@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { JestReporter } from './JestReporter'
-import { FileStorage, MemoryStorage, Config as TDDConfig } from 'tdd-guard'
+import {
+  FileStorage,
+  MemoryStorage,
+  Config as TDDConfig,
+  DEFAULT_DATA_DIR,
+} from 'tdd-guard'
 import path from 'node:path'
 import {
   createTest,
@@ -41,7 +46,7 @@ describe('JestReporter', () => {
       const config = fileStorage['config'] as TDDConfig
       const expectedDataDir = path.join(
         rootPath,
-        ...TDDConfig.DEFAULT_DATA_DIR.split('/')
+        ...DEFAULT_DATA_DIR.split('/')
       )
       expect(config.dataDir).toBe(expectedDataDir)
     })

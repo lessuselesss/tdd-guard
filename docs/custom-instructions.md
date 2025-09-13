@@ -8,7 +8,7 @@ TDD Guard uses validation rules to enforce TDD principles. You can override thes
 
 ## Automatic Setup
 
-If you have the [SessionStart hook](session-clearing.md) configured, the instructions file is created automatically with default rules when:
+If you have the [SessionStart hook](session-management.md) configured, the instructions file is created automatically with default rules when:
 
 - Starting a new Claude Code session
 - Resuming a session

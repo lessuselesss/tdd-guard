@@ -38,52 +38,28 @@ TDD Guard supports multiple validation clients:
 - **API** - Separate billing for CI/CD or faster validation
 - **CLI** (deprecated) - Legacy option, not recommended
 
-For detailed configuration, billing information, and troubleshooting, see the [Validdation Model Configuration](validation-model.md) guide.
+For detailed configuration, billing information, and troubleshooting, see the [Validation Model Configuration](validation-model.md) guide.
 
 If you're using the deprecated CLI client, see the [Configuration Migration Guide](config-migration.md#cli-binary-configuration).
 
+## Settings File Locations
+
+Choose where to save your settings based on your needs:
+
+- **Project settings** (`.claude/settings.json`) - Recommended for team consistency
+- **Local settings** (`.claude/settings.local.json`) - For personal preferences
+- **User settings** (`~/.claude/settings.json`) - For global configuration
+
 ## Hook Configuration
 
-### Interactive Setup (Recommended)
+See the [Quick Start guide](../README.md#3-configure-claude-code-hooks) in the main README for detailed hook configuration instructions, including both interactive and manual setup methods.
 
-Use Claude Code's `/hooks` command to set up both hooks:
+**Additional hooks:**
 
-#### PreToolUse Hook (TDD Validation)
-
-1. Type `/hooks` in Claude Code
-2. Select `PreToolUse - Before tool execution`
-3. Choose `+ Add new matcher...`
-4. Enter: `Write|Edit|MultiEdit|TodoWrite`
-5. Select `+ Add new hook...`
-6. Enter command: `tdd-guard`
-7. Choose where to save:
-   - **Project settings** (`.claude/settings.json`) - Recommended for team consistency
-   - **Local settings** (`.claude/settings.local.json`) - For personal preferences
-   - **User settings** (`~/.claude/settings.json`) - For global configuration
-
-### Manual Configuration
-
-Add to `.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit|TodoWrite",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "tdd-guard"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Tip:** Also configure [quick commands](quick-commands.md) for `tdd-guard on/off`, [ESLint integration](linting.md) for automated refactoring support, and [strengthening enforcement](enforcement.md) to prevent bypass.
+- [Quick commands](quick-commands.md) - Enable `tdd-guard on/off` commands
+- [Session management](session-management.md) - Automatic data clearing and rule setup
+- [Lint integration](linting.md) - Automated refactoring support
+- [Strengthening enforcement](enforcement.md) - Prevent agents from bypassing validation
 
 ## Test Reporter Configuration
 
@@ -94,6 +70,7 @@ Add to `.claude/settings.json`:
 - **PHP**: See [PHPUnit reporter configuration](../reporters/phpunit/README.md#configuration)
 - **Go**: See [Go reporter configuration](../reporters/go/README.md#configuration)
 - **Rust**: See [Rust reporter configuration](../reporters/rust/README.md#configuration)
+- **Nix**: See [Nix reporter configuration](../reporters/nix/README.md)
 
 ## Custom Validation Rules
 

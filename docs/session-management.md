@@ -1,19 +1,27 @@
-# TDD Guard Session Clearing
+# TDD Guard Session Management
 
-TDD Guard automatically clears transient data when starting a new Claude Code session, preventing outdated test results from affecting TDD validation.
+The SessionStart hook manages TDD Guard's session data and ensures a clean slate for each Claude Code session.
 
-## What Gets Cleared
+## What It Does
+
+### Clears Transient Data
 
 - Test results from previous sessions
 - Lint reports and code quality checks
-- Any other transient validation data
+- Other temporary validation data
+
+### Sets Up Validation Rules
+
+- Creates the customizable instructions file if it doesn't exist
+- Preserves your custom rules if already configured
+- See [Custom Instructions](custom-instructions.md) for details
 
 **Note:** The guard's enabled/disabled state is preserved across sessions.
 
 ## Setup
 
-To enable automatic session clearing, you need to add the SessionStart hook to your Claude Code configuration.
-You can set this up either through the interactive `/hooks` command or by manually editing your settings file.
+To enable session management, you need to add the SessionStart hook to your Claude Code configuration.
+You can set this up either through the interactive `/hooks` command or by manually editing your settings file. See [Settings File Locations](configuration.md#settings-file-locations) to choose the appropriate location.
 
 ### Using Interactive Setup (Recommended)
 
@@ -23,14 +31,11 @@ You can set this up either through the interactive `/hooks` command or by manual
 4. Enter matcher: `startup|resume|clear`
 5. Select `+ Add new hook…`
 6. Enter command: `tdd-guard`
-7. Choose where to save:
-   - **Project settings** (`.claude/settings.json`) - Recommended for team consistency
-   - **Local settings** (`.claude/settings.local.json`) - For personal preferences
-   - **User settings** (`~/.claude/settings.json`) - For global configuration
+7. Choose where to save
 
 ### Manual Configuration (Alternative)
 
-Add the following to your `.claude/settings.local.json`:
+Add the following to your chosen settings file:
 
 ```json
 {
@@ -61,7 +66,7 @@ The SessionStart hook triggers when:
 - A session is resumed (`resume`)
 - The `/clear` command is used (`clear`)
 
-When triggered, TDD Guard clears all transient data while preserving the guard state.
+When triggered, TDD Guard clears all transient data while preserving the guard state and your custom validation rules.
 
 ## Tips
 

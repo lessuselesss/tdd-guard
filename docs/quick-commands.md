@@ -15,7 +15,7 @@ The commands are case-insensitive, so `TDD-Guard OFF`, `tdd-guard off`, and `Tdd
 ## Setup
 
 To enable the quick commands feature, you need to add the UserPromptSubmit hook to your Claude Code configuration.
-You can set this up either through the interactive `/hooks` command or by manually editing your settings file.
+You can set this up either through the interactive `/hooks` command or by manually editing your settings file. See [Settings File Locations](configuration.md#settings-file-locations) to choose the appropriate location.
 
 ### Using Interactive Setup (Recommended)
 
@@ -23,14 +23,11 @@ You can set this up either through the interactive `/hooks` command or by manual
 2. Select `UserPromptSubmit - When the user submits a prompt`
 3. Select `+ Add new hook...`
 4. Enter command: `tdd-guard`
-5. Choose where to save:
-   - **Project settings** (`.claude/settings.json`) - Recommended for team consistency
-   - **Local settings** (`.claude/settings.local.json`) - For personal preferences
-   - **User settings** (`~/.claude/settings.json`) - For global configuration
+5. Choose where to save
 
 ### Manual Configuration (Alternative)
 
-Add the following to your `.claude/settings.local.json`:
+Add the following to your chosen settings file:
 
 ```json
 {

@@ -24,7 +24,7 @@ TDD Guard ensures Claude Code follows Test-Driven Development principles. When y
 - **Test-First Enforcement** - Blocks implementation without failing tests
 - **Minimal Implementation** - Prevents code beyond current test requirements
 - **Lint Integration** - Enforces refactoring using your linting rules
-- **Multi-Language Support** - TypeScript, JavaScript, Python, PHP, Go, and Rust
+- **Multi-Language Support** - TypeScript, JavaScript, Python, PHP, Go, Rust, and Nix
 - **Customizable Rules** - Adjust validation rules to match your TDD style
 - **Flexible Validation** - Choose faster or more capable models for your needs
 - **Session Control** - Toggle on and off mid-session
@@ -33,7 +33,7 @@ TDD Guard ensures Claude Code follows Test-Driven Development principles. When y
 
 - Node.js 18+
 - Claude Code or Anthropic API key
-- Test framework (Jest, Vitest, pytest, PHPUnit, Go 1.24+, or Rust with cargo/cargo-nextest)
+- Test framework (Jest, Vitest, pytest, PHPUnit, Go 1.24+, Rust with cargo/cargo-nextest, or nix-unit)
 
 ## Quick Start
 
@@ -230,24 +230,86 @@ test:
 
 </details>
 
-### 3. Configure Claude Code Hook
+### 3. Configure Claude Code Hooks
 
-Use the `/hooks` command in Claude Code:
+TDD Guard uses hooks to validate operations and provide convenience features like quick toggle commands and automatic session management.
 
-1. Type `/hooks` in Claude Code
-2. Select `PreToolUse - Before tool execution`
-3. Choose `+ Add new matcher...` and enter: `Write|Edit|MultiEdit|TodoWrite`
-4. Select `+ Add new hook...` and enter: `tdd-guard`
-5. Choose where to save (Project settings recommended)
+Choose either interactive or manual setup below:
 
-## Configuration
+<details>
+<summary><b>Interactive Setup</b></summary>
 
-**Quick Setup:**
+Type `/hooks` in Claude Code to open the hooks menu, then configure each hook. Use the same location for all hooks. See [Settings File Locations](docs/configuration.md#settings-file-locations) for guidance.
 
-- [Toggle commands](docs/quick-commands.md) - Enable/disable with `tdd-guard on/off`
-- [Session clearing](docs/session-clearing.md) - Automatic cleanup on new sessions
+**PreToolUse Hook**
 
-**Advanced:**
+1. Select `PreToolUse - Before tool execution`
+2. Choose `+ Add new matcher...` and enter: `Write|Edit|MultiEdit|TodoWrite`
+3. Select `+ Add new hook...` and enter: `tdd-guard`
+4. Choose where to save
+
+**UserPromptSubmit Hook**
+
+1. Select `UserPromptSubmit - When the user submits a prompt`
+2. Select `+ Add new hook...` and enter: `tdd-guard`
+3. Choose same location as PreToolUse
+
+**SessionStart Hook**
+
+1. Select `SessionStart - When a new session is started`
+2. Select `+ Add new matcher...` and enter: `startup|resume|clear`
+3. Select `+ Add new hook...` and enter: `tdd-guard`
+4. Choose same location as previous hooks
+
+</details>
+
+<details>
+<summary><b>Manual Configuration</b></summary>
+
+If you prefer to edit settings files directly, add all three hooks to your chosen settings file. See [Settings File Locations](docs/configuration.md#settings-file-locations) to choose the appropriate file:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tdd-guard"
+          }
+        ]
+      }
+    ],
+    "userpromptsubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tdd-guard"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tdd-guard"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</details>
+
+## Additional Configuration
 
 - [Custom instructions](docs/custom-instructions.md) - Customize TDD validation rules
 - [Lint integration](docs/linting.md) - Automated refactoring support

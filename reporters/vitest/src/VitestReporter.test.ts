@@ -6,6 +6,7 @@ import {
   FileStorage,
   Storage,
   Config,
+  DEFAULT_DATA_DIR,
   isFailingTest,
   isPassingTest,
   TestResult,
@@ -71,10 +72,7 @@ describe('VitestReporter', () => {
     // Verify the storage is configured with the correct path
     const fileStorage = reporter['storage'] as FileStorage
     const config = fileStorage['config'] as Config
-    const expectedDataDir = join(
-      rootPath,
-      ...Config.DEFAULT_DATA_DIR.split('/')
-    )
+    const expectedDataDir = join(rootPath, ...DEFAULT_DATA_DIR.split('/'))
     expect(config.dataDir).toBe(expectedDataDir)
   })
 
