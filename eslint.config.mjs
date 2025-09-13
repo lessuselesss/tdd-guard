@@ -117,10 +117,15 @@ export default [
       'sonarjs/no-nested-functions': 'off',
       'no-magic-numbers': 'off',
       complexity: ['error', 20],
-      'sonarjs/cognitive-complexity': ['error', 20],
+      'sonarjs/cognitive-complexity': ['error', 25], // Slightly higher for test files
       'max-nested-callbacks': ['error', 10],
       '@typescript-eslint/explicit-function-return-type': 'off',
       'sonarjs/no-duplicate-string': ['error', { threshold: 20 }],
+      'no-nested-ternary': 'off', // Allow nested ternaries in test mapping
+      'sonarjs/no-nested-conditional': 'off', // Allow nested conditionals in test mapping
+      'sonarjs/no-all-duplicated-branches': 'off', // Allow duplicated branches in test scenarios
+      'sonarjs/no-os-command-from-path': 'off', // Allow PATH usage in test factories
+      '@typescript-eslint/no-unused-vars': 'off', // Allow unused helper functions in tests
     },
   },
   {

@@ -4,6 +4,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { spawnSync } from 'node:child_process'
 import { FileStorage, Config as TDDConfig } from 'tdd-guard'
 import type { ReporterConfig, TestResultData, TestScenarios } from './types'
 
@@ -25,6 +26,7 @@ import {
   createPytestReporter,
   createGoReporter,
   createRustReporter,
+  createNixReporter,
 } from './factories'
 
 // Test data structure for each reporter
@@ -35,7 +37,358 @@ interface ReporterTestData {
   importErrorResults: unknown
 }
 
-type ReporterName = 'jest' | 'vitest' | 'phpunit' | 'pytest' | 'go' | 'rust'
+type ReporterName =
+  | 'jest'
+  | 'vitest'
+  | 'phpunit'
+  | 'pytest'
+  | 'go'
+  | 'rust'
+  | 'nix'
+
+// Helper to check if nix-unit is available
+function isNixUnitAvailable(): boolean {
+  try {
+    const result = spawnSync('nix-unit', ['--help'], {
+      stdio: 'pipe',
+      encoding: 'utf8',
+    })
+    return result.status === 0
+  } catch {
+    return false
+  }
+}
+
+// Helper to get expected reporters with their specific expected values
+type TestScenario = 'passing' | 'failing' | 'import'
+
+function getExpectedReporters(
+  scenario: TestScenario
+): Array<{ name: ReporterName; expected: string }> {
+  const baseReporters = [
+    {
+      name: 'jest' as const,
+      expected:
+        scenario === 'passing'
+          ? 'single-passing.test.js'
+          : scenario === 'failing'
+            ? 'single-failing.test.js'
+            : 'single-import-error.test.js',
+    },
+    {
+      name: 'vitest' as const,
+      expected:
+        scenario === 'passing'
+          ? 'single-passing.test.js'
+          : scenario === 'failing'
+            ? 'single-failing.test.js'
+            : 'single-import-error.test.js',
+    },
+    {
+      name: 'phpunit' as const,
+      expected:
+        scenario === 'passing'
+          ? 'SinglePassingTest.php'
+          : scenario === 'failing'
+            ? 'SingleFailingTest.php'
+            : 'SingleImportErrorTest.php',
+    },
+    {
+      name: 'pytest' as const,
+      expected:
+        scenario === 'passing'
+          ? 'test_single_passing.py'
+          : scenario === 'failing'
+            ? 'test_single_failing.py'
+            : 'test_single_import_error.py',
+    },
+    {
+      name: 'go' as const,
+      expected:
+        scenario === 'passing'
+          ? 'singlePassing'
+          : scenario === 'failing'
+            ? 'singleFailing'
+            : 'missingImport',
+    },
+    {
+      name: 'rust' as const,
+      expected:
+        scenario === 'passing'
+          ? 'single_passing'
+          : scenario === 'failing'
+            ? 'single_failing'
+            : 'compilation',
+    },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({
+      name: 'nix' as const,
+      expected: scenario === 'import' ? 'compilation' : 'tests',
+    })
+  }
+
+  return baseReporters
+}
+
+// Helper to get expected test names based on scenario
+function getExpectedTestNames(
+  scenario: 'passing' | 'failing'
+): Array<{ name: ReporterName; expected: string }> {
+  const baseReporters = [
+    { name: 'jest' as const, expected: 'should add numbers correctly' },
+    { name: 'vitest' as const, expected: 'should add numbers correctly' },
+    { name: 'phpunit' as const, expected: 'testShouldAddNumbersCorrectly' },
+    { name: 'pytest' as const, expected: 'test_should_add_numbers_correctly' },
+    {
+      name: 'go' as const,
+      expected: 'TestCalculator/TestShouldAddNumbersCorrectly',
+    },
+    {
+      name: 'rust' as const,
+      expected: 'calculator_tests::should_add_numbers_correctly',
+    },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({
+      name: 'nix' as const,
+      expected: scenario === 'passing' ? 'testBasicMath' : 'testBasicMath',
+    })
+  }
+
+  return baseReporters
+}
+
+// Helper for import error test names
+function getImportErrorTestNames(): Array<{
+  name: ReporterName
+  expected: string | undefined
+}> {
+  const baseReporters = [
+    { name: 'jest' as const, expected: 'Module failed to load (Error)' },
+    { name: 'vitest' as const, expected: 'single-import-error.test.js' },
+    { name: 'phpunit' as const, expected: 'testShouldAddNumbersCorrectly' },
+    {
+      name: 'pytest' as const,
+      expected: 'collection_error_test_single_import_error.py',
+    },
+    { name: 'go' as const, expected: 'CompilationError' },
+    { name: 'rust' as const, expected: 'build' },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({ name: 'nix' as const, expected: 'evaluation' })
+  }
+
+  return baseReporters
+}
+
+// Helper for full test names
+function getFullTestNames(
+  scenario: 'passing' | 'failing'
+): Array<{ name: ReporterName; expected: string }> {
+  const baseReporters = [
+    {
+      name: 'jest' as const,
+      expected: 'Calculator should add numbers correctly',
+    },
+    {
+      name: 'vitest' as const,
+      expected: 'Calculator > should add numbers correctly',
+    },
+    {
+      name: 'phpunit' as const,
+      expected:
+        scenario === 'passing'
+          ? 'SinglePassingTest::testShouldAddNumbersCorrectly'
+          : 'SingleFailingTest::testShouldAddNumbersCorrectly',
+    },
+    {
+      name: 'pytest' as const,
+      expected:
+        scenario === 'passing'
+          ? 'test_single_passing.py::TestCalculator::test_should_add_numbers_correctly'
+          : 'test_single_failing.py::TestCalculator::test_should_add_numbers_correctly',
+    },
+    {
+      name: 'go' as const,
+      expected:
+        scenario === 'passing'
+          ? 'singlePassingTestModule/TestCalculator/TestShouldAddNumbersCorrectly'
+          : 'singleFailingTestModule/TestCalculator/TestShouldAddNumbersCorrectly',
+    },
+    {
+      name: 'rust' as const,
+      expected:
+        scenario === 'passing'
+          ? 'single_passing::single_passing::calculator_tests::should_add_numbers_correctly'
+          : 'single_failing::single_failing::calculator_tests::should_add_numbers_correctly',
+    },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({
+      name: 'nix' as const,
+      expected:
+        scenario === 'passing' ? 'tests.testBasicMath' : 'tests.testBasicMath',
+    })
+  }
+
+  return baseReporters
+}
+
+// Helper for import error full test names
+function getImportErrorFullTestNames(): Array<{
+  name: ReporterName
+  expected: string | undefined
+}> {
+  const baseReporters = [
+    { name: 'jest' as const, expected: 'Module failed to load (Error)' },
+    { name: 'vitest' as const, expected: 'single-import-error.test.js' },
+    {
+      name: 'phpunit' as const,
+      expected: 'SingleImportErrorTest::testShouldAddNumbersCorrectly',
+    },
+    { name: 'pytest' as const, expected: 'test_single_import_error.py' },
+    { name: 'go' as const, expected: 'missingImportModule/CompilationError' },
+    { name: 'rust' as const, expected: 'compilation::build' },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({
+      name: 'nix' as const,
+      expected: 'compilation::evaluation',
+    })
+  }
+
+  return baseReporters
+}
+
+// Helper for test reason
+function getTestReasons(
+  scenario: 'passing' | 'failing' | 'import'
+): Array<{ name: ReporterName; expected: string }> {
+  const baseReporters = [
+    {
+      name: 'jest' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    },
+    {
+      name: 'vitest' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    },
+    {
+      name: 'phpunit' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    },
+    {
+      name: 'pytest' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    },
+    {
+      name: 'go' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    },
+    {
+      name: 'rust' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({
+      name: 'nix' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    })
+  }
+
+  return baseReporters
+}
+
+// Helper for error expected/actual values
+function getErrorValues(
+  type: 'expected' | 'actual'
+): Array<{ name: ReporterName; expected: string | undefined }> {
+  const baseReporters = [
+    { name: 'jest' as const, expected: type === 'expected' ? '6' : '5' },
+    { name: 'vitest' as const, expected: type === 'expected' ? '6' : '5' },
+    { name: 'phpunit' as const, expected: undefined },
+    { name: 'pytest' as const, expected: undefined },
+    { name: 'go' as const, expected: undefined },
+    { name: 'rust' as const, expected: type === 'expected' ? '6' : '5' },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({ name: 'nix' as const, expected: undefined })
+  }
+
+  return baseReporters
+}
+
+// Helper for test states
+function getTestStates(
+  scenario: 'passing' | 'failing' | 'import'
+): Array<{ name: ReporterName; expected: string | undefined }> {
+  const baseReporters = [
+    {
+      name: 'jest' as const,
+      expected:
+        scenario === 'passing'
+          ? 'passed'
+          : scenario === 'failing'
+            ? 'failed'
+            : 'failed',
+    },
+    {
+      name: 'vitest' as const,
+      expected:
+        scenario === 'passing'
+          ? 'passed'
+          : scenario === 'failing'
+            ? 'failed'
+            : 'failed',
+    },
+    {
+      name: 'phpunit' as const,
+      expected:
+        scenario === 'passing'
+          ? 'passed'
+          : scenario === 'failing'
+            ? 'failed'
+            : 'failed',
+    },
+    { name: 'pytest' as const, expected: undefined }, // TODO: Fix
+    {
+      name: 'go' as const,
+      expected:
+        scenario === 'passing'
+          ? 'passed'
+          : scenario === 'failing'
+            ? 'failed'
+            : 'failed',
+    },
+    {
+      name: 'rust' as const,
+      expected:
+        scenario === 'passing'
+          ? 'passed'
+          : scenario === 'failing'
+            ? 'failed'
+            : 'failed',
+    },
+  ]
+
+  if (isNixUnitAvailable()) {
+    baseReporters.push({
+      name: 'nix' as const,
+      expected: scenario === 'passing' ? 'passed' : 'failed',
+    })
+  }
+
+  return baseReporters
+}
 
 describe('Reporters', () => {
   const reporterData: ReporterTestData[] = []
@@ -51,6 +404,14 @@ describe('Reporters', () => {
       createRustReporter(),
     ]
 
+    // Conditionally add Nix reporter if nix-unit is available
+    if (isNixUnitAvailable()) {
+      reporters.push(createNixReporter())
+      console.log('✅ nix-unit detected - including Nix reporter tests')
+    } else {
+      console.log('⚠️  nix-unit not available - skipping Nix reporter tests')
+    }
+
     // Run all reporters in parallel
     const results = await Promise.all(reporters.map(runAllScenarios))
     reporterData.push(...results)
@@ -58,14 +419,7 @@ describe('Reporters', () => {
 
   describe('Module Path Reporting', () => {
     describe('when assertions are passing', () => {
-      const reporters: Array<{ name: ReporterName; expected: string }> = [
-        { name: 'jest', expected: 'single-passing.test.js' },
-        { name: 'vitest', expected: 'single-passing.test.js' },
-        { name: 'phpunit', expected: 'SinglePassingTest.php' },
-        { name: 'pytest', expected: 'test_single_passing.py' },
-        { name: 'go', expected: 'singlePassing' },
-        { name: 'rust', expected: 'single_passing' },
-      ]
+      const reporters = getExpectedReporters('passing')
 
       it.each(reporters)('$name reports module path', ({ name, expected }) => {
         const moduleIds = extractValues('passingResults', extract.firstModuleId)
@@ -74,14 +428,7 @@ describe('Reporters', () => {
     })
 
     describe('when assertions are failing', () => {
-      const reporters: Array<{ name: ReporterName; expected: string }> = [
-        { name: 'jest', expected: 'single-failing.test.js' },
-        { name: 'vitest', expected: 'single-failing.test.js' },
-        { name: 'phpunit', expected: 'SingleFailingTest.php' },
-        { name: 'pytest', expected: 'test_single_failing.py' },
-        { name: 'go', expected: 'singleFailing' },
-        { name: 'rust', expected: 'single_failing' },
-      ]
+      const reporters = getExpectedReporters('failing')
 
       it.each(reporters)('$name reports module path', ({ name, expected }) => {
         const moduleIds = extractValues('failingResults', extract.firstModuleId)
@@ -90,14 +437,7 @@ describe('Reporters', () => {
     })
 
     describe('when import errors occur', () => {
-      const reporters: Array<{ name: ReporterName; expected: string }> = [
-        { name: 'jest', expected: 'single-import-error.test.js' },
-        { name: 'vitest', expected: 'single-import-error.test.js' },
-        { name: 'phpunit', expected: 'SingleImportErrorTest.php' },
-        { name: 'pytest', expected: 'test_single_import_error.py' },
-        { name: 'go', expected: 'missingImport' },
-        { name: 'rust', expected: 'compilation' },
-      ]
+      const reporters = getExpectedReporters('import')
 
       it.each(reporters)('$name reports module path', ({ name, expected }) => {
         const results = extractValues(
@@ -111,20 +451,7 @@ describe('Reporters', () => {
 
   describe('Test Name Reporting', () => {
     describe('when assertions are passing', () => {
-      const reporters: Array<{ name: ReporterName; expected: string }> = [
-        { name: 'jest', expected: 'should add numbers correctly' },
-        { name: 'vitest', expected: 'should add numbers correctly' },
-        { name: 'phpunit', expected: 'testShouldAddNumbersCorrectly' },
-        { name: 'pytest', expected: 'test_should_add_numbers_correctly' },
-        {
-          name: 'go',
-          expected: 'TestCalculator/TestShouldAddNumbersCorrectly',
-        },
-        {
-          name: 'rust',
-          expected: 'calculator_tests::should_add_numbers_correctly',
-        },
-      ]
+      const reporters = getExpectedTestNames('passing')
 
       it.each(reporters)('$name reports test name', ({ name, expected }) => {
         const testNames = extractValues('passingResults', extract.firstTestName)
@@ -133,20 +460,7 @@ describe('Reporters', () => {
     })
 
     describe('when assertions are failing', () => {
-      const reporters: Array<{ name: ReporterName; expected: string }> = [
-        { name: 'jest', expected: 'should add numbers correctly' },
-        { name: 'vitest', expected: 'should add numbers correctly' },
-        { name: 'phpunit', expected: 'testShouldAddNumbersCorrectly' },
-        { name: 'pytest', expected: 'test_should_add_numbers_correctly' },
-        {
-          name: 'go',
-          expected: 'TestCalculator/TestShouldAddNumbersCorrectly',
-        },
-        {
-          name: 'rust',
-          expected: 'calculator_tests::should_add_numbers_correctly',
-        },
-      ]
+      const reporters = getExpectedTestNames('failing')
 
       it.each(reporters)('$name reports test name', ({ name, expected }) => {
         const testNames = extractValues('failingResults', extract.firstTestName)
@@ -155,20 +469,7 @@ describe('Reporters', () => {
     })
 
     describe('when import errors occur', () => {
-      const reporters: Array<{
-        name: ReporterName
-        expected: string | undefined
-      }> = [
-        { name: 'jest', expected: 'Module failed to load (Error)' },
-        { name: 'vitest', expected: 'single-import-error.test.js' },
-        { name: 'phpunit', expected: 'testShouldAddNumbersCorrectly' },
-        {
-          name: 'pytest',
-          expected: 'collection_error_test_single_import_error.py',
-        },
-        { name: 'go', expected: 'CompilationError' },
-        { name: 'rust', expected: 'build' },
-      ]
+      const reporters = getImportErrorTestNames()
 
       it.each(reporters)(
         '$name handles test names for import errors',
@@ -185,32 +486,7 @@ describe('Reporters', () => {
 
   describe('Full Test Name Reporting', () => {
     describe('when assertions are passing', () => {
-      const reporters: Array<{ name: ReporterName; expected: string }> = [
-        { name: 'jest', expected: 'Calculator should add numbers correctly' },
-        {
-          name: 'vitest',
-          expected: 'Calculator > should add numbers correctly',
-        },
-        {
-          name: 'phpunit',
-          expected: 'SinglePassingTest::testShouldAddNumbersCorrectly',
-        },
-        {
-          name: 'pytest',
-          expected:
-            'test_single_passing.py::TestCalculator::test_should_add_numbers_correctly',
-        },
-        {
-          name: 'go',
-          expected:
-            'singlePassingTestModule/TestCalculator/TestShouldAddNumbersCorrectly',
-        },
-        {
-          name: 'rust',
-          expected:
-            'single_passing::single_passing::calculator_tests::should_add_numbers_correctly',
-        },
-      ]
+      const reporters = getFullTestNames('passing')
 
       it.each(reporters)(
         '$name reports full test name',
@@ -225,32 +501,7 @@ describe('Reporters', () => {
     })
 
     describe('when assertions are failing', () => {
-      const reporters: Array<{ name: ReporterName; expected: string }> = [
-        { name: 'jest', expected: 'Calculator should add numbers correctly' },
-        {
-          name: 'vitest',
-          expected: 'Calculator > should add numbers correctly',
-        },
-        {
-          name: 'phpunit',
-          expected: 'SingleFailingTest::testShouldAddNumbersCorrectly',
-        },
-        {
-          name: 'pytest',
-          expected:
-            'test_single_failing.py::TestCalculator::test_should_add_numbers_correctly',
-        },
-        {
-          name: 'go',
-          expected:
-            'singleFailingTestModule/TestCalculator/TestShouldAddNumbersCorrectly',
-        },
-        {
-          name: 'rust',
-          expected:
-            'single_failing::single_failing::calculator_tests::should_add_numbers_correctly',
-        },
-      ]
+      const reporters = getFullTestNames('failing')
 
       it.each(reporters)(
         '$name reports full test name',
@@ -278,6 +529,7 @@ describe('Reporters', () => {
         { name: 'pytest', expected: 'test_single_import_error.py' },
         { name: 'go', expected: 'missingImportModule/CompilationError' },
         { name: 'rust', expected: 'compilation::build' },
+        { name: 'nix', expected: 'compilation::evaluation' },
       ]
 
       it.each(reporters)(
@@ -343,6 +595,7 @@ describe('Reporters', () => {
         { name: 'pytest', expected: 'failed' },
         { name: 'go', expected: 'failed' },
         { name: 'rust', expected: 'failed' },
+        { name: 'nix', expected: 'failed' },
       ]
 
       it.each(reporters)(
@@ -415,6 +668,7 @@ describe('Reporters', () => {
         { name: 'pytest', expected: undefined },
         { name: 'go', expected: undefined },
         { name: 'rust', expected: '6' }, // Successfully extracts expected value
+        { name: 'nix', expected: undefined },
       ]
 
       it.each(reporters)(
@@ -437,6 +691,7 @@ describe('Reporters', () => {
         { name: 'pytest', expected: undefined },
         { name: 'go', expected: undefined },
         { name: 'rust', expected: '5' }, // Successfully extracts actual value
+        { name: 'nix', expected: undefined },
       ]
 
       it.each(reporters)(
@@ -511,6 +766,7 @@ describe('Reporters', () => {
         { name: 'pytest', expected: undefined }, // TODO: Fix
         { name: 'go', expected: 'passed' },
         { name: 'rust', expected: 'passed' },
+        { name: 'nix', expected: 'passed' },
       ]
 
       it.each(reporters)(
@@ -533,6 +789,7 @@ describe('Reporters', () => {
         { name: 'pytest', expected: undefined }, // TODO: Fix
         { name: 'go', expected: 'failed' },
         { name: 'rust', expected: 'failed' },
+        { name: 'nix', expected: 'failed' },
       ]
 
       it.each(reporters)(
@@ -555,6 +812,7 @@ describe('Reporters', () => {
         { name: 'pytest', expected: undefined }, // TODO: Fix
         { name: 'go', expected: 'failed' },
         { name: 'rust', expected: 'failed' },
+        { name: 'nix', expected: 'failed' },
       ]
 
       it.each(reporters)(

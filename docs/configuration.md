@@ -70,6 +70,7 @@ See the [Quick Start guide](../README.md#3-configure-claude-code-hooks) in the m
 - **PHP**: See [PHPUnit reporter configuration](../reporters/phpunit/README.md#configuration)
 - **Go**: See [Go reporter configuration](../reporters/go/README.md#configuration)
 - **Rust**: See [Rust reporter configuration](../reporters/rust/README.md#configuration)
+- **Nix**: See [Nix reporter configuration](../reporters/nix/README.md)
 
 ## Custom Validation Rules
 

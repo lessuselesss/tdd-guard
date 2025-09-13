@@ -24,7 +24,7 @@ TDD Guard ensures Claude Code follows Test-Driven Development principles. When y
 - **Test-First Enforcement** - Blocks implementation without failing tests
 - **Minimal Implementation** - Prevents code beyond current test requirements
 - **Lint Integration** - Enforces refactoring using your linting rules
-- **Multi-Language Support** - TypeScript, JavaScript, Python, PHP, Go, and Rust
+- **Multi-Language Support** - TypeScript, JavaScript, Python, PHP, Go, Rust, and Nix
 - **Customizable Rules** - Adjust validation rules to match your TDD style
 - **Flexible Validation** - Choose faster or more capable models for your needs
 - **Session Control** - Toggle on and off mid-session
@@ -33,7 +33,7 @@ TDD Guard ensures Claude Code follows Test-Driven Development principles. When y
 
 - Node.js 18+
 - Claude Code or Anthropic API key
-- Test framework (Jest, Vitest, pytest, PHPUnit, Go 1.24+, or Rust with cargo/cargo-nextest)
+- Test framework (Jest, Vitest, pytest, PHPUnit, Go 1.24+, Rust with cargo/cargo-nextest, or nix-unit)
 
 ## Quick Start
 
